@@ -5,8 +5,7 @@ rust/target/
 __pycache__/
 *.pyc
 
-# Large data files (download separately from Språkbanken)
-fullformsliste.txt
+# Large archives (download separately from Språkbanken)
 *.tar.gz
 *.zip
 
