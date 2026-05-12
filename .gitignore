@@ -1,0 +1,22 @@
+# Rust build output
+rust/target/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Large data files (download separately from Språkbanken)
+fullformsliste.txt
+*.tar.gz
+*.zip
+
+# Other wordbank data files
+boying.txt
+boying_grupper.txt
+leddanalyse.txt
+lemma.txt
+lemma_paradigme.txt
+norsk_ordbank_argstr.txt
+oai.xml
+paradigme.txt
+paradigme_boying.txt
