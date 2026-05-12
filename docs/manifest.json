@@ -1,0 +1,17 @@
+{
+  "name": "Ordle",
+  "short_name": "Ordle",
+  "description": "Norsk Wordle-hjelper",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#121213",
+  "theme_color": "#538d4e",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
