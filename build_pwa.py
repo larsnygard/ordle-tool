@@ -128,6 +128,9 @@ input:focus,select:focus{{outline:none;border-color:#538d4e}}
 .err{{color:#e05252;margin-top:.6rem;font-size:.9rem;
       background:#2a1a1a;padding:.6rem .8rem;border-radius:6px}}
 .note{{color:#818384;font-size:.8rem;margin-top:.5rem}}
+footer{{margin-top:2.5rem;padding-top:1rem;border-top:1px solid #3a3a3c;
+        font-size:.75rem;color:#818384;line-height:1.6}}
+footer a{{color:#818384}}
 </style>
 </head>
 <body>
@@ -166,6 +169,16 @@ input:focus,select:focus{{outline:none;border-color:#538d4e}}
   <button class="btn" onclick="runFind()">Finn (maks 100)</button>
   <div class="res" id="fres"></div>
 </div>
+
+<footer>
+  Spill Wordle på norsk: <a href="https://ordle.no" target="_blank" rel="noopener">ordle.no</a><br>
+  Ordliste: <a href="https://www.nb.no/sprakbanken/ressurskatalog/oai-nb-no-sbr-5/" target="_blank" rel="noopener">Norsk ordbank &ndash; bokmål 2005</a>
+  &copy; Universitetet i Bergen &amp; Språkrådet,
+  distribuert av <a href="https://www.nb.no/sprakbanken" target="_blank" rel="noopener">Språkbanken</a>,
+  lisens <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a><br>
+  Ordle-verktøy: <a href="https://github.com/larsnygard/ordle-tool" target="_blank" rel="noopener">github.com/larsnygard/ordle-tool</a>,
+  lisens <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL&nbsp;3</a>
+</footer>
 
 <script>
 const WORDS_ALL  = {words_all_js};
