@@ -372,36 +372,52 @@ function closeHelp(){{
 
 function attachComboInteractions(){{
   const fres=document.getElementById('fres');
-  let lastTapTime={{}};
-  let lastTapWord=null;
-  const DOUBLE_TAP_MS=300;
+  let pressTimer=null;
+
+  const clearPress=()=>{{
+    if(pressTimer){{
+      clearTimeout(pressTimer);
+      pressTimer=null;
+    }}
+  }};
+
+  fres.addEventListener('pointerdown', e=>{{
+    const t=e.target.closest('.combo-word');
+    if(!t) return;
+    t.dataset.longPress='0';
+    t.dataset.ignoreNextContext='0';
+    if(e.pointerType==='touch'){{
+      pressTimer=setTimeout(()=>{{
+        addWordToList('fe', t.dataset.word);
+        t.dataset.longPress='1';
+        // Touch long-press can also fire contextmenu; ignore that next one.
+        t.dataset.ignoreNextContext='1';
+      }}, 500);
+    }}
+  }});
+
+  fres.addEventListener('pointerup', clearPress);
+  fres.addEventListener('pointercancel', clearPress);
+  fres.addEventListener('pointerleave', clearPress);
 
   fres.addEventListener('click', e=>{{
     const t=e.target.closest('.combo-word');
     if(!t) return;
-    const word=t.dataset.word;
-    const now=Date.now();
-    const lastTap=lastTapTime[word]||0;
-    
-    // Check if this is a double-tap (second tap within DOUBLE_TAP_MS)
-    if(now-lastTap<DOUBLE_TAP_MS && lastTapWord===word){{
-      // Double-tap = exclude (toggle in/out of exclude list)
-      addWordToList('fe', word);
-      lastTapTime[word]=0; // Reset to avoid triple-tap
+    if(t.dataset.longPress==='1'){{
+      t.dataset.longPress='0';
       return;
     }}
-    
-    // Single tap = include (toggle in/out of include list)
-    addWordToList('fi', word);
-    lastTapTime[word]=now;
-    lastTapWord=word;
+    addWordToList('fi', t.dataset.word);
   }});
 
-  // Right-click exclude for desktop
   fres.addEventListener('contextmenu', e=>{{
     const t=e.target.closest('.combo-word');
     if(!t) return;
     e.preventDefault();
+    if(t.dataset.ignoreNextContext==='1'){{
+      t.dataset.ignoreNextContext='0';
+      return;
+    }}
     addWordToList('fe', t.dataset.word);
   }});
 }}
@@ -679,12 +695,12 @@ const translations = {{
     btnFind: 'Finn (maks 100)',
     btnRandom: 'Tilfeldig sett',
     findRandomize: 'Tilfeldig rekkefølge',
-    comboHint: 'Trykk ord for å inkludere. Dobbelttrykk for å ekskludere.'
+    comboHint: 'Trykk/klikk på ord for å inkludere. Høyreklikk eller langt trykk for å ekskludere.',
     helpLink: 'Hjelp',
     helpTitleSolver: 'Slik bruker du Løser',
     helpBodySolver: '<ul><li>Bruk Løser for å finne ord som matcher mønster, inkluderte bokstaver og ekskluderte bokstaver.</li><li>Fyll inn mønsteret (bruk . for ukjent bokstav), bokstaver som må være med, og bokstaver som ikke skal være med. Trykk Søk for å se alle ord som passer.</li></ul>',
     helpTitleFind: 'Slik bruker du Finn kombinasjoner',
-    helpBodyFind: '<ul><li>Bruk Finn kombinasjoner for å bygge ordsett uten overlappende bokstaver.</li><li>Fyll inn antall ord, ord som skal inkluderes eller ekskluderes, og bokstaver som må eller ikke må være med.</li><li>Trykk Finn for en liste, eller Tilfeldig sett for ett forslag.</li><li>I listen: trykk et ord for å inkludere, dobbelttrykk for å ekskludere. Randomize gir tilfeldig utvalg i listen.</li></ul>'
+    helpBodyFind: '<ul><li>Bruk Finn kombinasjoner for å bygge ordsett uten overlappende bokstaver.</li><li>Fyll inn antall ord, ord som skal inkluderes eller ekskluderes, og bokstaver som må eller ikke må være med.</li><li>Trykk Finn for en liste, eller Tilfeldig sett for ett forslag.</li><li>Trykk/klikk et ord for å inkludere, høyreklikk eller langt trykk for å ekskludere. Randomize gir tilfeldig utvalg i listen.</li></ul>',
     footer: 'Spill Wordle på norsk: <a href="https://ordle.no" target="_blank" rel="noopener">ordle.no</a><br>Ordliste: <a href="https://www.nb.no/sprakbanken/ressurskatalog/oai-nb-no-sbr-5/" target="_blank" rel="noopener">Norsk ordbank – bokmål 2005</a>&copy; Universitetet i Bergen &amp; Språkrådet,distribuert av <a href="https://www.nb.no/sprakbanken" target="_blank" rel="noopener">Språkbanken</a>,lisens <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a><br>Ordle-verktøy: <a href="https://github.com/larsnygard/ordle-tool" target="_blank" rel="noopener">github.com/larsnygard/ordle-tool</a>,lisens <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL&nbsp;3</a>'
   }},
   en: {{
@@ -715,12 +731,12 @@ const translations = {{
     btnFind: 'Find (max 100)',
     btnRandom: 'Random set',
     findRandomize: 'Randomize',
-    comboHint: 'Tap a word to include it. Double-tap to exclude it.'
+    comboHint: 'Tap/click a word to include it. Right-click or long-press to exclude it.',
     helpLink: 'Help',
     helpTitleSolver: 'How to use Solver',
     helpBodySolver: '<ul><li>Use Solver to find words that match your pattern, required letters, and excluded letters.</li><li>Fill in the pattern (use . for unknown letters), letters that must be included, and letters to exclude.</li><li>Press Search to see all matching words.</li></ul>',
     helpTitleFind: 'How to use Find combinations',
-    helpBodyFind: '<ul><li>Use Find combinations to build sets of words with no overlapping letters.</li><li>Set number of words, include/exclude words, and required/excluded letters.</li><li>Press Find for a list, or Random set for one suggestion.</li><li>In the list: tap a word to include it, double-tap to exclude it. Randomize gives a random list sample.</li></ul>'
+    helpBodyFind: '<ul><li>Use Find combinations to build sets of words with no overlapping letters.</li><li>Set number of words, include/exclude words, and required/excluded letters.</li><li>Press Find for a list, or Random set for one suggestion.</li><li>Tap/click a word to include it, right-click or long-press to exclude it. Randomize gives a random list sample.</li></ul>',
     footer: 'Play Wordle in English: <a href="https://www.nytimes.com/games/wordle/" target="_blank" rel="noopener">nytimes.com/games/wordle</a><br>Wordlist: Public domain 5-letter English words<br>Worlde-tool: <a href="https://github.com/larsnygard/ordle-tool" target="_blank" rel="noopener">github.com/larsnygard/ordle-tool</a>,license <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL&nbsp;3</a>'
   }}
 }};
