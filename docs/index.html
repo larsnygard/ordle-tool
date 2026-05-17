@@ -270,65 +270,63 @@ function closeHelp(){
 
 function attachComboInteractions(){
   const fres=document.getElementById('fres');
-  let pressTimer=null;
   let touchTarget=null;
   let touchStartX=0;
   let touchStartY=0;
+  let touchStartTime=0;
   let suppressNextClickWord='';
-
-  const clearPress=()=>{
-    if(pressTimer){
-      clearTimeout(pressTimer);
-      pressTimer=null;
-    }
-    touchTarget=null;
-  };
+  const LONG_PRESS_MS=500;
+  const MOVE_THRESHOLD=15;
 
   fres.addEventListener('pointerdown', e=>{
     const t=e.target.closest('.combo-word');
     if(!t) return;
     t.dataset.longPress='0';
-    t.dataset.ignoreNextContext='0';
   });
 
-  fres.addEventListener('pointerup', clearPress);
-  fres.addEventListener('pointercancel', clearPress);
-
-  // Real touchscreens are less consistent with pointer long-press.
-  // Use explicit touch events for robust long-press exclude behavior.
   fres.addEventListener('touchstart', e=>{
     const t=e.target.closest('.combo-word');
     if(!t) return;
     const touch=e.changedTouches[0];
+    touchTarget=t;
     touchStartX=touch.clientX;
     touchStartY=touch.clientY;
-    touchTarget=t;
+    touchStartTime=Date.now();
     t.dataset.longPress='0';
-    t.dataset.ignoreNextContext='0';
-    pressTimer=setTimeout(()=>{
-      if(!touchTarget) return;
-      addWordToList('fe', t.dataset.word);
-      t.dataset.longPress='1';
-      t.dataset.ignoreNextContext='1';
-      suppressNextClickWord=t.dataset.word;
-    }, 550);
   }, {passive:true});
 
   fres.addEventListener('touchmove', e=>{
-    if(!touchTarget || !pressTimer) return;
+    if(!touchTarget) return;
     const touch=e.changedTouches[0];
     if(!touch) return;
     const dx=Math.abs(touch.clientX-touchStartX);
     const dy=Math.abs(touch.clientY-touchStartY);
-    if(dx>10 || dy>10) clearPress();
+    // If moved too far, this is a scroll, not a tap/long-press
+    if(dx>MOVE_THRESHOLD || dy>MOVE_THRESHOLD) {
+      touchTarget=null;
+    }
   }, {passive:true});
 
-  fres.addEventListener('touchend', clearPress, {passive:true});
-  fres.addEventListener('touchcancel', clearPress, {passive:true});
+  fres.addEventListener('touchend', e=>{
+    if(!touchTarget) return;
+    const elapsed=Date.now()-touchStartTime;
+    // If held long enough and not moved much, treat as long-press exclude
+    if(elapsed>=LONG_PRESS_MS){
+      addWordToList('fe', touchTarget.dataset.word);
+      touchTarget.dataset.longPress='1';
+      suppressNextClickWord=touchTarget.dataset.word;
+    }
+    touchTarget=null;
+  }, {passive:true});
+
+  fres.addEventListener('touchcancel', e=>{
+    touchTarget=null;
+  }, {passive:true});
 
   fres.addEventListener('click', e=>{
     const t=e.target.closest('.combo-word');
     if(!t) return;
+    // If this was a long-press, don't include
     if(suppressNextClickWord && suppressNextClickWord===t.dataset.word){
       suppressNextClickWord='';
       return;
@@ -340,14 +338,11 @@ function attachComboInteractions(){
     addWordToList('fi', t.dataset.word);
   });
 
+  // Right-click exclude for desktop
   fres.addEventListener('contextmenu', e=>{
     const t=e.target.closest('.combo-word');
     if(!t) return;
     e.preventDefault();
-    if(t.dataset.ignoreNextContext==='1'){
-      t.dataset.ignoreNextContext='0';
-      return;
-    }
     addWordToList('fe', t.dataset.word);
   });
 }
