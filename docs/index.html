@@ -15,9 +15,34 @@ body{font-family:system-ui,sans-serif;background:#121213;color:#fff;
      max-width:520px;margin:0 auto;padding:1rem 1rem 3rem}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem}
 h1{flex:1;text-align:center;font-size:1.8rem;color:#538d4e;letter-spacing:.1em;margin:0}
+.top-actions{display:flex;align-items:center;gap:.6rem}
 .lang-selector{display:flex;gap:8px}
 .lang-selector span{cursor:pointer;font-size:1.5rem;opacity:.6;transition:opacity .2s}
 .lang-selector span.active{opacity:1}
+.help-link{
+  border:1px solid #3a3a3c;background:transparent;color:#d7dadc;
+  border-radius:999px;padding:.25rem .6rem;font-size:.8rem;cursor:pointer;
+  text-transform:uppercase;letter-spacing:.05em
+}
+.help-link:hover{border-color:#538d4e;color:#fff}
+.modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.58);display:none;
+  align-items:center;justify-content:center;padding:1rem;z-index:20
+}
+.modal.open{display:flex}
+.modal-card{
+  width:min(100%,460px);background:#1a1a1b;border:1px solid #3a3a3c;
+  border-radius:12px;padding:1rem 1rem .9rem;position:relative
+}
+.modal-card h2{font-size:1.1rem;color:#d7dadc;margin-bottom:.65rem}
+.modal-body{color:#d7dadc;font-size:.92rem;line-height:1.45}
+.modal-body ul{padding-left:1.2rem;margin:.2rem 0 .7rem}
+.modal-body li{margin:.2rem 0}
+.modal-close{
+  position:absolute;right:.55rem;top:.45rem;background:transparent;border:none;
+  color:#818384;font-size:1.4rem;cursor:pointer;line-height:1
+}
+.modal-close:hover{color:#fff}
 /* tabs */
 .tabs{display:flex;gap:4px;margin-bottom:1.5rem}
 .tab{flex:1;padding:.65rem;text-align:center;border:none;border-radius:6px;
@@ -40,6 +65,11 @@ input:focus,select:focus{outline:none;border-color:#538d4e}
       transition:background .15s}
 .btn:hover{background:#6aaf63}
 .btn:active{background:#3e7040}
+.btn-row{display:flex;gap:.5rem}
+.btn-row .btn{width:auto;flex:1}
+.btn.alt{background:#3a3a3c}
+.btn.alt:hover{background:#4a4a4c}
+.btn.alt:active{background:#2f2f31}
 /* results */
 .res{margin-top:1.4rem}
 .cnt{color:#818384;font-size:.85rem;margin-bottom:.7rem}
@@ -49,6 +79,8 @@ input:focus,select:focus{outline:none;border-color:#538d4e}
 .clist{list-style:none}
 .clist li{background:#3a3a3c;border-radius:5px;padding:.45rem .8rem;
            margin-bottom:4px;font-family:monospace;font-size:.95rem}
+.combo-word{cursor:pointer;user-select:none}
+.combo-sep{opacity:.75;padding:0 .2rem}
 .spin{text-align:center;padding:2rem;color:#818384}
 .err{color:#e05252;margin-top:.6rem;font-size:.9rem;
       background:#2a1a1a;padding:.6rem .8rem;border-radius:6px}
@@ -60,6 +92,7 @@ footer a{color:#818384}
 </head>
 <body>
 <div class="header">
+  <button class="help-link" id="help-link" type="button" onclick="openHelp()">Hjelp</button>
   <h1 id="app-title">Ordle</h1>
   <div class="lang-selector">
     <span onclick="setLanguage('no')" class="active">🇳🇴</span>
@@ -68,8 +101,8 @@ footer a{color:#818384}
 </div>
 
 <div class="tabs">
-  <button class="tab active" id="tab-check" onclick="showTab('check')">Sjekk ord</button>
   <button class="tab" id="tab-find" onclick="showTab('find')">Finn kombinasjoner</button>
+  <button class="tab active" id="tab-check" onclick="showTab('check')">Sjekk ord</button>
 </div>
 
 <!-- ── CHECK ── -->
@@ -99,8 +132,25 @@ footer a{color:#818384}
   <input type="text" id="fe" placeholder="f.eks. alder,smitt" autocomplete="off" autocorrect="off" spellcheck="false">
   <label id="label-mustcombo">Bokstaver som MÅ finnes i kombinasjonen</label>
   <input type="text" id="fr" placeholder="f.eks. aeiou" autocomplete="off" autocorrect="off" spellcheck="false">
-  <button class="btn" id="btn-find" onclick="runFind()">Finn (maks 100)</button>
+  <label id="label-notcombo">Bokstaver som IKKE må finnes i kombinasjonen</label>
+  <input type="text" id="fx" placeholder="f.eks. rst" autocomplete="off" autocorrect="off" spellcheck="false">
+  <div class="btn-row">
+    <button class="btn" id="btn-find" onclick="runFind(false)">Finn (maks 100)</button>
+    <button class="btn alt" id="btn-random" onclick="runFind(true)">Tilfeldig sett</button>
+  </div>
+  <label style="display:flex;align-items:center;gap:.5em;font-size:.92rem;margin:.5em 0 0 .1em">
+    <input type="checkbox" id="find-randomize" style="margin:0 .4em 0 0;vertical-align:middle">
+    <span id="find-randomize-label">Vis i tilfeldig rekkefølge</span>
+  </label>
   <div class="res" id="fres"></div>
+</div>
+
+<div id="help-modal" class="modal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <button class="modal-close" id="help-close" type="button" onclick="closeHelp()" aria-label="Close">&times;</button>
+    <h2 id="help-title">Slik bruker du verktøyet</h2>
+    <div class="modal-body" id="help-body"></div>
+  </div>
 </div>
 
 <footer id="footer-main">
@@ -124,10 +174,11 @@ let WORDS_UNIQ = WORDS_UNIQ_NO;
 
 // ── tab switching ──
 function showTab(t) {
-  ['check','find'].forEach((id,i) => {
-    document.querySelectorAll('.tab')[i].classList.toggle('active', id===t);
+  ['check','find'].forEach((id) => {
+    document.getElementById('tab-' + id).classList.toggle('active', id===t);
     document.getElementById('s-'+id).classList.toggle('on', id===t);
   });
+  window._activeTab = t;
 }
 
 // ── CHECK ──
@@ -163,18 +214,134 @@ function runCheck(){
     '<div class="wlist">'+shown.map(w=>`<span class="word">${w}</span>`).join('')+'</div>';
 }
 
+function addWordToList(inputId, word){
+  const input = document.getElementById(inputId);
+  const words = input.value
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(s => s.length > 0);
+  const idx = words.indexOf(word);
+  if(idx >= 0) {
+    words.splice(idx, 1);
+  } else {
+    words.push(word);
+  }
+  input.value = words.join(',');
+}
+
+function renderComboLine(words){
+  const parts=[];
+  for(let i=0;i<words.length;i++){
+    const w=words[i];
+    parts.push(`<span class="combo-word" data-word="${w}">${w}</span>`);
+    if(i<words.length-1) parts.push('<span class="combo-sep"> · </span>');
+  }
+  return parts.join('');
+}
+
+function comboInteractionHint(){
+  return translations[currentLang].comboHint;
+}
+
+function updateHelpContent(){
+  const t = translations[currentLang];
+  const tab = window._activeTab || (document.getElementById('s-find').classList.contains('on') ? 'find' : 'check');
+  if(tab==='find'){
+    document.getElementById('help-title').textContent = t.helpTitleFind;
+    document.getElementById('help-body').innerHTML = t.helpBodyFind;
+  }else{
+    document.getElementById('help-title').textContent = t.helpTitleSolver;
+    document.getElementById('help-body').innerHTML = t.helpBodySolver;
+  }
+}
+
+function openHelp(){
+  const modal=document.getElementById('help-modal');
+  updateHelpContent();
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+}
+
+function closeHelp(){
+  const modal=document.getElementById('help-modal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
+}
+
+function attachComboInteractions(){
+  const fres=document.getElementById('fres');
+  let pressTimer=null;
+
+  const clearPress=()=>{
+    if(pressTimer){
+      clearTimeout(pressTimer);
+      pressTimer=null;
+    }
+  };
+
+  fres.addEventListener('pointerdown', e=>{
+    const t=e.target.closest('.combo-word');
+    if(!t) return;
+    t.dataset.longPress='0';
+    t.dataset.ignoreNextContext='0';
+    if(e.pointerType==='touch'){
+      pressTimer=setTimeout(()=>{
+        addWordToList('fe', t.dataset.word);
+        t.dataset.longPress='1';
+        // Touch long-press can also fire contextmenu; ignore that next one.
+        t.dataset.ignoreNextContext='1';
+      }, 500);
+    }
+  });
+
+  fres.addEventListener('pointerup', clearPress);
+  fres.addEventListener('pointercancel', clearPress);
+  fres.addEventListener('pointerleave', clearPress);
+
+  fres.addEventListener('click', e=>{
+    const t=e.target.closest('.combo-word');
+    if(!t) return;
+    if(t.dataset.longPress==='1'){
+      t.dataset.longPress='0';
+      return;
+    }
+    addWordToList('fi', t.dataset.word);
+  });
+
+  fres.addEventListener('contextmenu', e=>{
+    const t=e.target.closest('.combo-word');
+    if(!t) return;
+    e.preventDefault();
+    if(t.dataset.ignoreNextContext==='1'){
+      t.dataset.ignoreNextContext='0';
+      return;
+    }
+    addWordToList('fe', t.dataset.word);
+  });
+}
+
 // Enter key in check inputs
 ['cpat','ci','ce'].forEach(id=>{
   document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')runCheck();});
 });
 
 // ── FIND ──
-function runFind(){
+function shuffleInPlace(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
+
+function runFind(randomOnly=false){
+  const randomizeList = document.getElementById('find-randomize')?.checked;
   const n=parseInt(document.getElementById('fn').value);
   const rawInc=document.getElementById('fi').value;
   const rawExc=document.getElementById('fe').value;
   const reqStr=document.getElementById('fr').value.toLowerCase().replace(/[^a-zæøå]/g,'');
+  const excReqStr=document.getElementById('fx').value.toLowerCase().replace(/[^a-zæøå]/g,'');
   const required=new Set(reqStr);
+  const excluded=new Set(excReqStr);
   const el=document.getElementById('fres');
 
   const incWords=rawInc.split(',').map(s=>s.trim().toLowerCase()).filter(s=>s.length>0);
@@ -204,6 +371,14 @@ function runFind(){
     }
   }
   const incChars=new Set(incWords.flatMap(w=>[...w]));
+  for(const c of excluded){
+    if(required.has(c)){
+      el.innerHTML=`<div class="err">Feil: Bokstaven '${c}' kan ikke være både påkrevd og ekskludert.</div>`;return;
+    }
+    if(incChars.has(c)){
+      el.innerHTML=`<div class="err">Feil: Ekskludert bokstav '${c}' finnes i inkluderte ord.</div>`;return;
+    }
+  }
   if(incChars.size!==incWords.reduce((s,w)=>s+[...w].length,0)){
     el.innerHTML='<div class="err">Feil: Inkluderte ord har overlappende bokstaver.</div>';return;
   }
@@ -211,11 +386,81 @@ function runFind(){
     el.innerHTML='<div class="err">Feil: Antall inkluderte ord m&aring; v&aelig;re mindre enn kombinasjonst&oslash;rrelsen.</div>';return;
   }
 
-  el.innerHTML='<div class="spin">S&oslash;ker…</div>';
+  el.innerHTML=randomOnly
+    ? '<div class="spin">Genererer tilfeldig sett...</div>'
+    : '<div class="spin">S&oslash;ker…</div>';
   setTimeout(()=>{
-    const remaining=WORDS_UNIQ.filter(w=>!excSet.has(w)&&[...w].every(c=>!incChars.has(c)));
+    const remaining=WORDS_UNIQ.filter(w=>
+      !excSet.has(w)&&
+      [...w].every(c=>!incChars.has(c))&&
+      [...w].every(c=>!excluded.has(c))
+    );
     const need=n-incWords.length;
     const combos=[];
+
+    function randomSearch(){
+      const order=[...remaining];
+      shuffleInPlace(order);
+
+      function pick(start,current,used){
+        if(current.length===need){
+          if(required.size>0){
+            const all=new Set([...incChars,...used]);
+            for(const c of required) if(!all.has(c)) return null;
+          }
+          return [...incWords,...current];
+        }
+        for(let i=start;i<order.length;i++){
+          const w=order[i];
+          if([...w].some(c=>used.has(c))) continue;
+          for(const c of w) used.add(c);
+          current.push(w);
+          const found=pick(i+1,current,used);
+          if(found) return found;
+          current.pop();
+          for(const c of w) used.delete(c);
+        }
+        return null;
+      }
+
+      return pick(0,[],new Set());
+    }
+
+    if(randomOnly){
+      const one=randomSearch();
+      if(!one){
+        el.innerHTML='<div class="cnt">Ingen kombinasjoner funnet.</div>';
+        return;
+      }
+      el.innerHTML=
+        '<div class="cnt">Tilfeldig kombinasjon</div>'+
+        `<div class="note">${comboInteractionHint()}</div>`+
+        `<ul class="clist"><li>${renderComboLine(one)}</li></ul>`;
+      return;
+    }
+
+    // --- Combo generation logic ---
+    let allCombos = [];
+    function collectAllCombos(start,current,used){
+      if(allCombos.length>=10000) return; // hard cap for perf
+      if(current.length===need){
+        if(required.size>0){
+          const all=new Set([...incChars,...used]);
+          for(const c of required) if(!all.has(c))return;
+        }
+        allCombos.push([...incWords,...current]);
+        return;
+      }
+      for(let i=start;i<remaining.length;i++){
+        const w=remaining[i];
+        if([...w].some(c=>used.has(c)))continue;
+        for(const c of w)used.add(c);
+        current.push(w);
+        collectAllCombos(i+1,current,used);
+        current.pop();
+        for(const c of w)used.delete(c);
+      }
+    }
 
     function search(start,current,used){
       if(combos.length>=100)return;
@@ -239,21 +484,83 @@ function runFind(){
       }
     }
 
-    search(0,[],new Set());
-
-    if(combos.length===0){
-      el.innerHTML='<div class="cnt">Ingen kombinasjoner funnet.</div>';
+    if(randomizeList){
+      // Generate 100 random valid combos, shuffling include-words into each
+      let found = 0;
+      let shownCombos = [];
+      const maxTries = 10000;
+      let tries = 0;
+      while(found < 100 && tries < maxTries){
+        tries++;
+        // Pick random words for the rest
+        const pool = remaining.slice();
+        for(let i=pool.length-1;i>0;i--){
+          const j=Math.floor(Math.random()*(i+1));
+          [pool[i],pool[j]]=[pool[j],pool[i]];
+        }
+        let used = new Set(incWords.flatMap(w=>[...w]));
+        let combo = [...incWords];
+        for(let i=0;i<need;i++){
+          let foundIdx = -1;
+          for(let j=0;j<pool.length;j++){
+            const w = pool[j];
+            if([...w].some(c=>used.has(c))) continue;
+            foundIdx = j; break;
+          }
+          if(foundIdx === -1){ combo = null; break; }
+          const w = pool[foundIdx];
+          combo.push(w);
+          for(const c of w) used.add(c);
+          pool.splice(foundIdx,1);
+        }
+        if(combo){
+          // Check required letters
+          if(required.size>0){
+            const all=new Set(combo.flatMap(w=>[...w]));
+            let ok = true;
+            for(const c of required) if(!all.has(c)) ok = false;
+            if(!ok) continue;
+          }
+          // Shuffle the combo so include-words are not always first
+          for(let i=combo.length-1;i>0;i--){
+            const j=Math.floor(Math.random()*(i+1));
+            [combo[i],combo[j]]=[combo[j],combo[i]];
+          }
+          // Avoid duplicates
+          const key = combo.join(',');
+          if(!shownCombos.some(arr=>arr.join(',')===key)){
+            shownCombos.push(combo);
+            found++;
+          }
+        }
+      }
+      if(shownCombos.length===0){
+        el.innerHTML='<div class="cnt">Ingen kombinasjoner funnet.</div>';
+      }else{
+        const trunc=tries>=maxTries;
+        el.innerHTML=
+          `<div class="cnt">Viser ${shownCombos.length} tilfeldige kombinasjoner${trunc?' (maks 100, tilfeldig utvalg)':''}</div>`+
+          `<div class="note">${comboInteractionHint()}</div>`+
+          '<ul class="clist">'+shownCombos.map(c=>`<li>${renderComboLine(c)}</li>`).join('')+'</ul>';
+      }
     }else{
-      const trunc=combos.length>=100;
-      el.innerHTML=
-        `<div class="cnt">Viser ${combos.length} kombinasjoner${trunc?' (maks 100 &ndash; bruk inkluder-feltet for &aring; begrense s&oslash;ket)':''}</div>`+
-        '<ul class="clist">'+combos.map(c=>`<li>${c.join(' · ')}</li>`).join('')+'</ul>';
+      search(0,[],new Set());
+      if(combos.length===0){
+        el.innerHTML='<div class="cnt">Ingen kombinasjoner funnet.</div>';
+      }else{
+        const trunc=combos.length>=100;
+        let shownCombos = combos.slice();
+        el.innerHTML=
+          `<div class="cnt">Viser ${combos.length} kombinasjoner${trunc?' (maks 100 &ndash; bruk inkluder-feltet for &aring; begrense s&oslash;ket)':''}</div>`+
+          `<div class="note">${comboInteractionHint()}</div>`+
+          '<ul class="clist">'+shownCombos.map(c=>`<li>${renderComboLine(c)}</li>`).join('')+'</ul>';
+      }
     }
   },10);
 }
 
-['fi','fe','fr'].forEach(id=>{
-  document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')runFind();});
+['fi','fe','fr','fx'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')runFind(false);});
 });
 
 // ── LANGUAGE SWITCHING ──
@@ -261,7 +568,7 @@ const translations = {
   no: {
     pageTitle: 'Ordle - Norsk Wordle-hjelper',
     appTitle: 'Ordle',
-    tabCheck: 'Sjekk ord',
+    tabCheck: 'Løser',
     tabFind: 'Finn kombinasjoner',
     labelPattern: 'Mønster — bruk . for ukjent bokstav',
     cpatPlaceholder: 'f.eks. ..a.e',
@@ -281,13 +588,23 @@ const translations = {
     fePlaceholder: 'f.eks. alder,smitt',
     labelMustcombo: 'Bokstaver som MÅ finnes i kombinasjonen',
     frPlaceholder: 'f.eks. aeiou',
+    labelNotcombo: 'Bokstaver som IKKE må finnes i kombinasjonen',
+    fxPlaceholder: 'f.eks. rst',
     btnFind: 'Finn (maks 100)',
+    btnRandom: 'Tilfeldig sett',
+    findRandomize: 'Tilfeldig rekkefølge',
+    comboHint: 'Trykk/klikk på ord for å inkludere. Høyreklikk eller langt trykk for å ekskludere.',
+    helpLink: 'Hjelp',
+    helpTitleSolver: 'Slik bruker du Løser',
+    helpBodySolver: '<ul><li>Bruk Løser for å finne ord som matcher mønster, inkluderte bokstaver og ekskluderte bokstaver.</li><li>Fyll inn mønsteret (bruk . for ukjent bokstav), bokstaver som må være med, og bokstaver som ikke skal være med. Trykk Søk for å se alle ord som passer.</li></ul>',
+    helpTitleFind: 'Slik bruker du Finn kombinasjoner',
+    helpBodyFind: '<ul><li>Bruk Finn kombinasjoner for å bygge ordsett uten overlappende bokstaver.</li><li>Fyll inn antall ord, ord som skal inkluderes eller ekskluderes, og bokstaver som må eller ikke må være med.</li><li>Trykk Finn for en liste, eller Tilfeldig sett for ett forslag.</li><li>Trykk/klikk et ord for å inkludere, høyreklikk eller langt trykk for å ekskludere. Randomize gir tilfeldig utvalg i listen.</li></ul>',
     footer: 'Spill Wordle på norsk: <a href="https://ordle.no" target="_blank" rel="noopener">ordle.no</a><br>Ordliste: <a href="https://www.nb.no/sprakbanken/ressurskatalog/oai-nb-no-sbr-5/" target="_blank" rel="noopener">Norsk ordbank – bokmål 2005</a>&copy; Universitetet i Bergen &amp; Språkrådet,distribuert av <a href="https://www.nb.no/sprakbanken" target="_blank" rel="noopener">Språkbanken</a>,lisens <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a><br>Ordle-verktøy: <a href="https://github.com/larsnygard/ordle-tool" target="_blank" rel="noopener">github.com/larsnygard/ordle-tool</a>,lisens <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL&nbsp;3</a>'
   },
   en: {
     pageTitle: 'Worlde - English Wordle Helper',
     appTitle: 'Worlde',
-    tabCheck: 'Check word',
+    tabCheck: 'Solver',
     tabFind: 'Find combinations',
     labelPattern: 'Pattern — use . for unknown letter',
     cpatPlaceholder: 'e.g. ..a.e',
@@ -307,7 +624,17 @@ const translations = {
     fePlaceholder: 'e.g. adieu,crane',
     labelMustcombo: 'Letters that must appear in the combination',
     frPlaceholder: 'e.g. aeiou',
+    labelNotcombo: 'Letters that must NOT appear in the combination',
+    fxPlaceholder: 'e.g. rst',
     btnFind: 'Find (max 100)',
+    btnRandom: 'Random set',
+    findRandomize: 'Randomize',
+    comboHint: 'Tap/click a word to include it. Right-click or long-press to exclude it.',
+    helpLink: 'Help',
+    helpTitleSolver: 'How to use Solver',
+    helpBodySolver: '<ul><li>Use Solver to find words that match your pattern, required letters, and excluded letters.</li><li>Fill in the pattern (use . for unknown letters), letters that must be included, and letters to exclude.</li><li>Press Search to see all matching words.</li></ul>',
+    helpTitleFind: 'How to use Find combinations',
+    helpBodyFind: '<ul><li>Use Find combinations to build sets of words with no overlapping letters.</li><li>Set number of words, include/exclude words, and required/excluded letters.</li><li>Press Find for a list, or Random set for one suggestion.</li><li>Tap/click a word to include it, right-click or long-press to exclude it. Randomize gives a random list sample.</li></ul>',
     footer: 'Play Wordle in English: <a href="https://www.nytimes.com/games/wordle/" target="_blank" rel="noopener">nytimes.com/games/wordle</a><br>Wordlist: Public domain 5-letter English words<br>Worlde-tool: <a href="https://github.com/larsnygard/ordle-tool" target="_blank" rel="noopener">github.com/larsnygard/ordle-tool</a>,license <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL&nbsp;3</a>'
   }
 };
@@ -324,12 +651,10 @@ function setLanguage(lang) {
   currentLang = lang;
   document.documentElement.lang = lang;
   const t = translations[lang];
-  
   // Update language selector active state
   document.querySelectorAll('.lang-selector span').forEach((s,i) => {
     s.classList.toggle('active', (i===0 && lang==='no') || (i===1 && lang==='en'));
   });
-  
   document.title = t.pageTitle;
   document.getElementById('app-title').textContent = t.appTitle;
   // Tabs
@@ -355,10 +680,15 @@ function setLanguage(lang) {
   document.getElementById('fe').placeholder = t.fePlaceholder;
   document.getElementById('label-mustcombo').textContent = t.labelMustcombo;
   document.getElementById('fr').placeholder = t.frPlaceholder;
+  document.getElementById('label-notcombo').textContent = t.labelNotcombo;
+  document.getElementById('fx').placeholder = t.fxPlaceholder;
   document.getElementById('btn-find').textContent = t.btnFind;
+  document.getElementById('btn-random').textContent = t.btnRandom;
+  document.getElementById('find-randomize-label').textContent = t.findRandomize;
+  document.getElementById('help-link').textContent = t.helpLink;
+  updateHelpContent();
   // Footer
   document.getElementById('footer-main').innerHTML = t.footer;
-  
   // Switch wordlists based on language
   if(lang === 'en') {
     WORDS_ALL = WORDS_ALL_EN;
@@ -367,11 +697,22 @@ function setLanguage(lang) {
     WORDS_ALL = WORDS_ALL_NO;
     WORDS_UNIQ = WORDS_UNIQ_NO;
   }
+  // Always show Find tab by default after language switch
+  showTab('find');
 }
 
 // Initialize language on page load
 window.addEventListener('DOMContentLoaded', function() {
   setLanguage(currentLang);
+  showTab('find');
+  attachComboInteractions();
+  document.getElementById('find-randomize').addEventListener('change',()=>runFind(false));
+  document.getElementById('help-modal').addEventListener('click', (e)=>{
+    if(e.target.id==='help-modal') closeHelp();
+  });
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='Escape') closeHelp();
+  });
 });
 
 // ── Service Worker ──
