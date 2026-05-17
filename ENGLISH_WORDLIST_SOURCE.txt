@@ -1,0 +1,32 @@
+English word list source and license notes
+
+Generated files:
+- english_words_all.txt
+- english_words_unique.txt
+
+Source:
+- Project: English Speller Database (ESDB, previously SCOWL)
+- Repository: https://github.com/en-wl/wordlist
+- Asset used: hunspell-en_US-<release>.zip (official release asset)
+
+Copyright and permission:
+Copyright 2000-2026 by Kevin Atkinson
+
+Permission to use, copy, modify, distribute, and sell any part of the
+English Speller Database (ESDB, previously known as SCOWLv2), or word lists
+created from it, is hereby granted without fee, provided that the above
+copyright notice appears in all copies and that both the above copyright
+notice and this notice appear in supporting documentation.
+
+Kevin Atkinson makes no representations about the suitability of this
+database for any purpose. It is provided "as is" without express or implied
+warranty.
+
+Notes for this project:
+- This project uses en_US only.
+- It does not use AU-specific spelling data.
+- It does not use enlarged lists beyond normal hunspell release scope.
+- Keep this notice file when redistributing generated English word lists.
+
+For full upstream terms and additional notices, see:
+https://raw.githubusercontent.com/en-wl/wordlist/v2/Copyright

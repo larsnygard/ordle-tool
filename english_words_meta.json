@@ -1,0 +1,9 @@
+{
+  "source": "en-wl/wordlist",
+  "release_tag": "rel-2026.02.25",
+  "asset_name": "hunspell-en_US-2026.02.25.zip",
+  "asset_url": "https://github.com/en-wl/wordlist/releases/download/rel-2026.02.25/hunspell-en_US-2026.02.25.zip",
+  "word_filter": "^[a-z]{5}$",
+  "all_words_count": 4550,
+  "unique_words_count": 2930
+}
