@@ -373,12 +373,17 @@ function closeHelp(){{
 function attachComboInteractions(){{
   const fres=document.getElementById('fres');
   let pressTimer=null;
+  let touchTarget=null;
+  let touchStartX=0;
+  let touchStartY=0;
+  let suppressNextClickWord='';
 
   const clearPress=()=>{{
     if(pressTimer){{
       clearTimeout(pressTimer);
       pressTimer=null;
     }}
+    touchTarget=null;
   }};
 
   fres.addEventListener('pointerdown', e=>{{
@@ -386,23 +391,50 @@ function attachComboInteractions(){{
     if(!t) return;
     t.dataset.longPress='0';
     t.dataset.ignoreNextContext='0';
-    if(e.pointerType==='touch'){{
-      pressTimer=setTimeout(()=>{{
-        addWordToList('fe', t.dataset.word);
-        t.dataset.longPress='1';
-        // Touch long-press can also fire contextmenu; ignore that next one.
-        t.dataset.ignoreNextContext='1';
-      }}, 500);
-    }}
   }});
 
   fres.addEventListener('pointerup', clearPress);
   fres.addEventListener('pointercancel', clearPress);
-  fres.addEventListener('pointerleave', clearPress);
+
+  // Real touchscreens are less consistent with pointer long-press.
+  // Use explicit touch events for robust long-press exclude behavior.
+  fres.addEventListener('touchstart', e=>{{
+    const t=e.target.closest('.combo-word');
+    if(!t) return;
+    const touch=e.changedTouches[0];
+    touchStartX=touch.clientX;
+    touchStartY=touch.clientY;
+    touchTarget=t;
+    t.dataset.longPress='0';
+    t.dataset.ignoreNextContext='0';
+    pressTimer=setTimeout(()=>{{
+      if(!touchTarget) return;
+      addWordToList('fe', t.dataset.word);
+      t.dataset.longPress='1';
+      t.dataset.ignoreNextContext='1';
+      suppressNextClickWord=t.dataset.word;
+    }}, 550);
+  }}, {{passive:true}});
+
+  fres.addEventListener('touchmove', e=>{{
+    if(!touchTarget || !pressTimer) return;
+    const touch=e.changedTouches[0];
+    if(!touch) return;
+    const dx=Math.abs(touch.clientX-touchStartX);
+    const dy=Math.abs(touch.clientY-touchStartY);
+    if(dx>10 || dy>10) clearPress();
+  }}, {{passive:true}});
+
+  fres.addEventListener('touchend', clearPress, {{passive:true}});
+  fres.addEventListener('touchcancel', clearPress, {{passive:true}});
 
   fres.addEventListener('click', e=>{{
     const t=e.target.closest('.combo-word');
     if(!t) return;
+    if(suppressNextClickWord && suppressNextClickWord===t.dataset.word){{
+      suppressNextClickWord='';
+      return;
+    }}
     if(t.dataset.longPress==='1'){{
       t.dataset.longPress='0';
       return;
